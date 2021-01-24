@@ -112,6 +112,8 @@ matrix:
 install:
   - echo BEGIN INSTALL
   - echo on
+  - which tclsh
+  - echo ''puts [info patchlevel];exit 0'' | tclsh  2> nul
   - set
   - echo %APPVEYOR_BUILD_FOLDER%
   #
@@ -177,8 +179,6 @@ install:
   # OTHERS?
   - which python
   - python --version                              2> nul
-  - which tclsh
-  - echo '''puts [info patchlevel];exit 0''' | tclsh  2> nul
   #
   # In JAN 2021, 404 errors occurs here on package install option, (except -gettext).
   #
