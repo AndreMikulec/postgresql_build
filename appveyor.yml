@@ -140,6 +140,7 @@ install:
   - mkdir                               %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
   - copy %APPVEYOR_BUILD_FOLDER%\plr\*  %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
   - dir                                 %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
+  - type %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr\Makefile
   #
   - set PATH=C:/msys64/usr/bin;%PATH%
   #
@@ -213,7 +214,19 @@ build_script:
   - sh -l -c "./configure --enable-cassert --enable-debug --enable-depend"
   #
   # - sh -l -c "make world COPT=-Werror"
-  # - sh -l -c "make"
+  #
+  # I tried to build plr alone (without building postgres).
+  # Either my Makefile is bad,
+  # and/or, postgres STILL needs to be fully built ("make")
+  # BEFORE trying to build plr.
+  #
+  # C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/9.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lpostgres
+  # C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/9.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lpgcommon
+  # C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/9.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lpgport
+  #
+  # I want to build postgres.
+  #
+  - sh -l -c "make"
   #
   # I want to build plr.
   #
