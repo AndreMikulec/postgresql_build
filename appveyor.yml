@@ -25,7 +25,7 @@
 # Message-ID:	d8e78714-dc77-4a64-783f-e863ba4d951f@2ndquadrant.com
 # Views:	Raw Message | Whole Thread | Download mbox | Resend email
 # Thread:
-# 2020-03-23 16:05:33 from Peter Eisentraut <peter(dot)eisentraut(at)2ndquadrant(dot)com> 📎
+# 2020-03-23 16:05:33 from Peter Eisentraut <peter(dot)eisentraut(at)2ndquadrant(dot)com>
 # Lists:	pgsql-hackers
 # https://www.postgresql.org/message-id/d8e78714-dc77-4a64-783f-e863ba4d951f%402ndquadrant.com
 # . . .
@@ -105,14 +105,14 @@ environment:
   #
   #
   matrix:
-    - MSYSTEM: MINGW64
+    - MSYSTEM: MINGW32
       R_ARCH: /x64
       # how to escape space comma doublequotes from yaml file
       # 2018
       # https://stackoverflow.com/questions/55923288/how-to-escape-space-comma-doublequotes-from-yaml-file
       COMPONENTS_ARCH: ',x64'
     # if I am successful (enough) in configing/making 64 then I will try 32
-    # - MSYSTEM: MINGW32
+    # - MSYSTEM: MINGW64
 
 # https://www.postgresql.org/message-id/flat/f1caef93-9640-022e-9211-bbe8755a56b0%402ndQuadrant.com
 matrix:
@@ -120,16 +120,26 @@ matrix:
     - MSYSTEM: MINGW64
 
 install:
-  - echo BEGIN INSTALL
+  - echo BEGIN APPVEYOR INSTALL
   - echo on
   - set
+  #
+  # MSYS2_PATH_TYPE=inherit
+  # MSYSTEM=MINGW64
+  #
   - sh -l -c "export"
+  #
+  # export MINGW_CHOST="x86_64-w64-mingw32"
+  # export MINGW_PACKAGE_PREFIX="mingw-w64-x86_64"
+  # export MINGW_PREFIX="/mingw64"
+  # export MSYS2_PATH_TYPE="inherit"
+  # export MSYSTEM="MINGW64"
+  # export MSYSTEM_CARCH="x86_64"
+  # export MSYSTEM_CHOST="x86_64-w64-mingw32"
+  # export MSYSTEM_PREFIX="/mingw64"
+  #
   - echo %CD%
   - echo %APPVEYOR_BUILD_FOLDER%
-  #
-  # See the MINGW environment variable: MINGW_PACKAGE_PREFIX (and others)
-  #
-  - sh -l -c "export"
   #
   # I need the source to be used to create a configuration
   #
@@ -163,7 +173,6 @@ install:
   # See the MINGW environment variable: MINGW_PACKAGE_PREFIX (and others)
   #
   - sh -l -c "export"
-  #
   #
   # I need plr to link to the R.dll, so I need the R binaries.
   # Thanks go to Dave Cramer . . .
@@ -229,10 +238,10 @@ install:
   - sh -l -c "curl -L http://cpanmin.us | perl - --self-upgrade"
   - sh -l -c "cpanm --notest IPC::Run"
   - perl -v
-  - echo END INSTALL
+  - echo END   APPVEYOR INSTALL
 
 build_script:
-  - echo BEGIN BUILD_SCRIPT
+  - echo BEGIN APPVEYOR BUILD_SCRIPT
   - echo on
   - set
   - sh -l -c "export"
@@ -254,7 +263,7 @@ build_script:
   # https://www.postgresql.org/docs/13/install-procedure.html
   #
   # Because of 404 errors, I can not do "all of this".
-  # - sh -l -c "./configure --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
+  # - sh -l -c "./configure --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
   #
   # I will do what I can, plus "--enable-depend"
   # I do not want to rebuild everything. I want "--enable-depend"?
@@ -262,8 +271,14 @@ build_script:
   # Currently, I just want the configuration.
   #
   - echo BEGIN CONFIGURE POSTGRES
-  - sh -l -c "./configure --enable-cassert --enable-debug --enable-depend"
+  - sh -l -c "./configure  --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-depend"
   - echo END CONFIGURE POSTGRES
+  #
+  # I am not sure if I need to do this?!?
+  #
+  - sh -l -c "mkdir    ${PG_HOME}"
+  - sh -l -c "ls -alrt ${PG_HOME}"
+  #
   #
   # - sh -l -c "make world COPT=-Werror"
   #
@@ -289,12 +304,12 @@ build_script:
   #
   # build area
   - echo BEGIN BUILD AREA DIRECTORIES AND FILES
-  - sh -l -c "find"
+  - sh -l -c "find -type d"
   - echo END BUILD AREA DIRECTORIES AND FILES
   #
   # install area
   - echo BEGIN INSTALL AREA DIRECTORIES AND FILES
-  - sh -l -c "find ${PG_HOME}"
+  - sh -l -c "find ${PG_HOME} -type d"
   - echo END INSTALL AREA DIRECTORIES AND FILES
   #
   # I want to build plr.
@@ -321,31 +336,35 @@ build_script:
   #
   # build area
   - echo BEGIN BUILD AREA DIRECTORIES AND FILES
-  - sh -l -c "find"
+  - sh -l -c "find -type d"
   - echo END   BUILD AREA DIRECTORIES AND FILES
   #
   # install area
   - echo BEGIN INSTALL AREA DIRECTORIES AND FILES
-  - sh -l -c "find ${PG_HOME}"
+  - sh -l -c "find ${PG_HOME} -type d"
   - echo END   INSTALL AREA DIRECTORIES AND FILES
-  - echo END BUILD_SCRIPT
   - chdir %OLDDIR%
+  - echo END   APPVEYOR BUILD_SCRIPT
 
 
 after_build:
+  - echo BEGIN APPVEYOR AFTER BUILD
   # -r (Recurse subdirectories) switch
   # https://sevenzip.osdn.jp/chm/cmdline/switches/recurse.htm
   #
   # plr
   #
   - 7z a "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip" -r %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr\*
+  - echo END   APPVEYOR AFTER BUILD
 
 artifacts:
+  - echo BEGIN APPVEYOR ARTIFACTS
   #
   # plr
   #
   - path: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
     name: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
+  - echo END   APPVEYOR ARTIFACTS
 
 #
 # Currently, I do not care.
