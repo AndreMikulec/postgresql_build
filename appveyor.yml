@@ -174,7 +174,7 @@ install:
   # overwrite
   - move /Y %APPVEYOR_BUILD_FOLDER%\postgresql_ext_plr_Makefile\Makefile %APPVEYOR_BUILD_FOLDER%\plr\Makefile
   # file name change to distinguish this license from others
-  - move /Y %APPVEYOR_BUILD_FOLDER%\plr\Makefile\LICENSE                 %APPVEYOR_BUILD_FOLDER%\plr\Makefile\PLR_LICENSE   
+  - move /Y %APPVEYOR_BUILD_FOLDER%\plr\LICENSE                          %APPVEYOR_BUILD_FOLDER%\plr\Makefile\PLR_LICENSE   
   #
   # Copy the plr directory files to the contrib\plr directory.
   #
