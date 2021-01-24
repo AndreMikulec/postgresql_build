@@ -358,13 +358,11 @@ after_build:
   - echo END   APPVEYOR AFTER BUILD
 
 artifacts:
-  - echo BEGIN APPVEYOR ARTIFACTS
   #
   # plr
   #
   - path: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
     name: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
-  - echo END   APPVEYOR ARTIFACTS
 
 #
 # Currently, I do not care.
