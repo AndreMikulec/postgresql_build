@@ -1,7 +1,22 @@
+
+# help: 1 of 3
+# From:	Andrew Dunstan <andrew(at)dunslane(dot)net>
+# To:	PostgreSQL-development <pgsql-hackers(at)postgresql(dot)org>
+# Subject:	msys2
+# Date:	2018-10-07 19:32:44
+# Message-ID:	9f4f22be-f9f1-b350-bc06-521226b87f7a@dunslane.net
+# Views:	Raw Message | Whole Thread | Download mbox | Resend email
+# Thread:
+# 2018-10-07 19:32:44 from Andrew Dunstan <andrew(at)dunslane(dot)net>
+# Lists:	pgsql-hackers
+# https://www.postgresql.org/message-id/9f4f22be-f9f1-b350-bc06-521226b87f7a%40dunslane.net
+
+
+# help: 2 of 3
 # Developing PostgreSQL for Windows, Part 3
 # March 24, 2020/in Eisentraut's PlanetPostgreSQL, PostgreSQL /by Peter Eisentraut
 # https://www.2ndquadrant.com/en/blog/developing-postgresql-windows-part-3/
-
+# . . .
 # some AppVeyor files
 # From:	Peter Eisentraut <peter(dot)eisentraut(at)2ndquadrant(dot)com>
 # To:	pgsql-hackers <pgsql-hackers(at)postgresql(dot)org>
@@ -13,10 +28,20 @@
 # 2020-03-23 16:05:33 from Peter Eisentraut <peter(dot)eisentraut(at)2ndquadrant(dot)com> 📎
 # Lists:	pgsql-hackers
 # https://www.postgresql.org/message-id/d8e78714-dc77-4a64-783f-e863ba4d951f%402ndquadrant.com
+# . . .
+# From a04c2140482645a810bfd682b204bac5194eea8d Mon Sep 17 00:00:00 2001
+# From: Peter Eisentraut <peter@eisentraut.org>
+# Date: Tue, 10 Mar 2020 19:23:46 +0100
+# Subject: [PATCH] AppVeyor configuration for MinGW
+# https://www.postgresql.org/message-id/attachment/109033/0001-AppVeyor-configuration-for-MinGW.patch
 
-# Accessing Windows build worker via Remote Desktop
-# JAN 2021
-# https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
+
+# help: 3 of 3
+# Package: mingw-w64-x86_64-postgresql
+# Libraries for use with PostgreSQL (mingw-w64)
+# https://github.com/msys2/MINGW-packages/blob/master/mingw-w64-postgresql/PKGBUILD
+# and
+# https://packages.msys2.org/package/mingw-w64-x86_64-postgresql
 
 version: 0.1.0-{build}-{branch}
 
@@ -30,16 +55,54 @@ branches:
   only:
     - master
 
+# Accessing Windows build worker via Remote Desktop
+# JAN 2021
+# https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
+
 # collect IP and username for rdp
 # init:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 # # remove locking file from the desktop
 
+# Note: The "R Installer on Windows" NOW always DOES a mult-arch install (garanteed as of R 4.0.0)
+#
+# Note: Rscript --vanilla --quiet -e shell('set') | findstr /R "^R_ARCH"
+# R_ARCH=/x64
+# R_ARCH=/i386
 
 environment:
+  # I must "KNOW THIS before running this Appveyor build
+  # See https://cran.r-project.org/bin/windows/base/old/
+  #
+  rversion: 4.0.3
+  #
+  # I must "KNOW THIS before running this Appveyor build.
+  # See https://github.com/postgres/postgres
+  #
+  PG_GIT_BRANCH: REL_13_STABLE
+  #
+  # I must "KNOW THIS before running this Appveyor build.
+  # See https://github.com/postgres-plr/plr/Makefile
+  #     AND (must have the same DATA line *.sql files)
+  #     https://github.com/AndreMikulec/postgresql_ext_plr_Makefile/Makefile
+  #
+  PLR_VERSION: 8.4.1
+  #
+  # This environment variable R_HOME is needed (and R_ARCH),
+  # so that, later, the linker can link plr to the R dll.
+  # See https://github.com/AndreMikulec/postgresql_ext_plr_Makefile/Makefile
+  #
+  R_HOME: /c/RINSTALL
+  #
   matrix:
     - MSYSTEM: MINGW64
-    - MSYSTEM: MINGW32
+      R_ARCH: /x64
+      # how to escape space comma doublequotes from yaml file
+      # 2018
+      # https://stackoverflow.com/questions/55923288/how-to-escape-space-comma-doublequotes-from-yaml-file
+      COMPONENTS_ARCH: ',x64'
+    # if I am successful (enough) in configing/making 64 then I will try 32
+    # - MSYSTEM: MINGW32
 
 # https://www.postgresql.org/message-id/flat/f1caef93-9640-022e-9211-bbe8755a56b0%402ndQuadrant.com
 matrix:
@@ -47,31 +110,146 @@ matrix:
     - MSYSTEM: MINGW64
 
 install:
+  - echo BEGIN INSTALL
   - echo on
-  - git clone --branch=master https://github.com/postgres-plr/plr.git  C:\projects\%APPVEYOR_PROJECT_SLUG%\plr
-  - dir C:\projects\%APPVEYOR_PROJECT_SLUG%\plr
-  - git clone --branch=master https://github.com/postgres/postgres.git C:\projects\%APPVEYOR_PROJECT_SLUG%\postgres
-  - dir C:\projects\%APPVEYOR_PROJECT_SLUG%\postgres
+  - set
+  - echo %APPVEYOR_BUILD_FOLDER%
+  #
+  # I need the source to be used to create a configuration
+  #
+  - git clone --branch=%PG_GIT_BRANCH% https://github.com/postgres/postgres.git %APPVEYOR_BUILD_FOLDER%\postgres
+  - dir %APPVEYOR_BUILD_FOLDER%\postgres
+  #
+  # I want to build this extension: plr
+  #
+  - git clone --branch=master https://github.com/postgres-plr/plr.git  %APPVEYOR_BUILD_FOLDER%\plr
+  - dir  %APPVEYOR_BUILD_FOLDER%\plr
+  #
+  # Replace the plr extension Makefile, using my custom Makefile.
+  # REQUIRED: The *.sql files "DATA line" - must match that of the
+  # DATA line of https://github.com/postgres-plr/plr/Makefile
+  #
+  # NOTE: The plr version is also located in https://github.com/postgres-plr/plr/blob/master/plr.control
+  #
+  - git clone --branch=master https://github.com/AndreMikulec/postgresql_ext_plr_Makefile.git  %APPVEYOR_BUILD_FOLDER%\postgresql_ext_plr_Makefile
+  # overwrite
+  - move /Y %APPVEYOR_BUILD_FOLDER%\postgresql_ext_plr_Makefile\Makefile %APPVEYOR_BUILD_FOLDER%\plr\Makefile
+  #
+  # Copy the plr directory files to the contrib\plr directory.
+  #
+  - mkdir                               %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
+  - copy %APPVEYOR_BUILD_FOLDER%\plr\*  %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
+  #
   - set PATH=C:/msys64/usr/bin;%PATH%
-  - sh -l -c "pacman --noconfirm -S --needed ${MINGW_PACKAGE_PREFIX}-gettext ${MINGW_PACKAGE_PREFIX}-icu ${MINGW_PACKAGE_PREFIX}-libxml2 ${MINGW_PACKAGE_PREFIX}-libxslt ${MINGW_PACKAGE_PREFIX}-openssl"
+  #
+  #
+  # I need plr to link to the R.dll, so I need the R binaries.
+  # Thanks go to Dave Cramer . . .
+  #
+  # https://github.com/postgres-plr/plr/blob/master/appveyor.yml
+  #
+  - appveyor downloadfile https://cran.r-project.org/bin/windows/base/old/%rversion%/R-%rversion%-win.exe
+  #
+  # My own . . .
+  - R-%rversion%-win.exe /SP- /VERYSILENT /DIR=C:\RINSTALL /COMPONENTS=main%COMPONENTS_ARCH%,translations /NOICONS /TASKS=
+  - dir C:\RINSTALL
+  #
+  # Flex and Bison are needed to build from a Git checkout,
+  #
+  # Perl 5.8.3 or later is needed to build from a Git checkout,
+  # If building on Windows you will need Perl in any case.
+  # Perl is also required to run some test suites.
+  #
+  # 16.2. Requirements
+  # https://www.postgresql.org/docs/13/install-requirements.html
+  #
+  # What is provided by Appveyor on the default image?: Visual Studio 2015
+  # See https://www.appveyor.com/docs/windows-images-software/
+  #
+  - which git
+  - which flex
+  - which bison
+  - which perl
+  - perl -v                                       2> nul
+  - which diff
+  - which make
+  # OTHERS?
+  - which python
+  - python ––version                              2> nul
+  - which tclsh
+  - echo 'puts [info patchlevel];exit 0' | tclsh  2> nul
+  #
+  # In JAN 2021, 404 errors occurs here on package install option, (except -gettext).
+  #
+  # - sh -l -c "pacman --noconfirm -S --needed ${MINGW_PACKAGE_PREFIX}-gettext ${MINGW_PACKAGE_PREFIX}-icu ${MINGW_PACKAGE_PREFIX}-libxml2 ${MINGW_PACKAGE_PREFIX}-libxslt ${MINGW_PACKAGE_PREFIX}-openssl"
+  #
+  # I will just install what I can.
+  #
+  - sh -l -c "pacman --noconfirm -S --needed ${MINGW_PACKAGE_PREFIX}-gettext"
   - sh -l -c "curl -L http://cpanmin.us | perl - --self-upgrade"
   - sh -l -c "cpanm --notest IPC::Run"
+  - perl -v                                       2> nul
+  - echo END INSTALL
 
 build_script:
+  - echo BEGIN BUILD_SCRIPT
+  - set
+  #
+  - set OLDDIR=%CD%
+  - chdir %APPVEYOR_BUILD_FOLDER%/postgres
+  #
   - set HOME=.
   - set PATH=C:/msys64/usr/bin;%PATH%
-  - sh -l -c "./configure --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
-  - sh -l -c "make world COPT=-Werror"
+  #
+  # Because of 404 errors, I can not do "all of this".
+  # - sh -l -c "./configure --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
+  #
+  # I will do what I can, plus "--enable-depend"
+  # I do not want to rebuild everything. I want "--enable-depend"?
+  #
+  # Currently, I just want the configuration.
+  #
+  - sh -l -c "./configure --enable-cassert --enable-debug --enable-depend"
+  #
+  # - sh -l -c "make world COPT=-Werror"
+  # - sh -l -c "make"
+  #
+  # I want to build plr.
+  #
+  - sh -l -c "make -C contrib/plr"
+  - chdir %OLDDIR%
+  - echo END BUILD_SCRIPT
 
-test_script:
-  - set HOME=.
-  - set PATH=C:/msys64/usr/bin;%PATH%
-  - sh -l -c "make check-world COPT=-Werror"
+after_build:
+  # -r (Recurse subdirectories) switch
+  # https://sevenzip.osdn.jp/chm/cmdline/switches/recurse.htm
+  #
+  # plr
+  #
+  - 7z a "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip" -r %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr\*
 
-on_failure:
-  - set HOME=.
-  - sh -l -c "test -f config.status || cat config.log"
-  - sh -l -c "find . -name regression.diffs | xargs cat"
+artifacts:
+ #
+ # plr
+ #
+  - path: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
+    name: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
+
+#
+# Currently, I do not care.
+#
+# test_script:
+#   - set HOME=.
+#   - set PATH=C:/msys64/usr/bin;%PATH%
+#   - sh -l -c "make check-world COPT=-Werror"
+
+#
+# Currently, I do not care.
+#
+# on_failure:
+#   - set HOME=.
+#   - sh -l -c "test -f config.status || cat config.log"
+#   - sh -l -c "find . -name regression.diffs | xargs cat"
 
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
