@@ -105,14 +105,14 @@ environment:
   #
   #
   matrix:
-    - MSYSTEM: MINGW32
+    - MSYSTEM: MINGW64
       R_ARCH: /x64
       # how to escape space comma doublequotes from yaml file
       # 2018
       # https://stackoverflow.com/questions/55923288/how-to-escape-space-comma-doublequotes-from-yaml-file
       COMPONENTS_ARCH: ',x64'
     # if I am successful (enough) in configing/making 64 then I will try 32
-    # - MSYSTEM: MINGW64
+    # - MSYSTEM: MINGW32
 
 # https://www.postgresql.org/message-id/flat/f1caef93-9640-022e-9211-bbe8755a56b0%402ndQuadrant.com
 matrix:
@@ -125,7 +125,10 @@ install:
   - set
   #
   # MSYS2_PATH_TYPE=inherit
+  #
   # MSYSTEM=MINGW64
+  #
+  # MSYSTEM=MINGW32
   #
   - sh -l -c "export"
   #
@@ -137,6 +140,17 @@ install:
   # export MSYSTEM_CARCH="x86_64"
   # export MSYSTEM_CHOST="x86_64-w64-mingw32"
   # export MSYSTEM_PREFIX="/mingw64"
+  #
+  # export MINGW_CHOST="i686-w64-mingw32"
+  # export MINGW_PACKAGE_PREFIX="mingw-w64-i686"
+  # export MINGW_PREFIX="/mingw32"
+  # export MSYS2_PATH_TYPE="inherit"
+  # export MSYSTEM="MINGW32"
+  # export MSYSTEM_CARCH="i686"
+  # export MSYSTEM_CHOST="i686-w64-mingw32"
+  # export MSYSTEM_PREFIX="/mingw32"
+  #
+  - sh -l -c "export | "
   #
   - echo %CD%
   - echo %APPVEYOR_BUILD_FOLDER%
@@ -268,17 +282,16 @@ build_script:
   # I will do what I can, plus "--enable-depend"
   # I do not want to rebuild everything. I want "--enable-depend"?
   #
-  # Currently, I just want the configuration.
-  #
-  - echo BEGIN CONFIGURE POSTGRES
-  - sh -l -c "./configure  --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-depend"
-  - echo END CONFIGURE POSTGRES
+  # The configuration.
   #
   # I am not sure if I need to do this?!?
   #
   - sh -l -c "mkdir    ${PG_HOME}"
   - sh -l -c "ls -alrt ${PG_HOME}"
   #
+  - echo BEGIN CONFIGURE POSTGRES
+  - sh -l -c "./configure --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-depend"
+  - echo END CONFIGURE POSTGRES
   #
   # - sh -l -c "make world COPT=-Werror"
   #
