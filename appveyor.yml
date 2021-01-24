@@ -18,8 +18,22 @@
 # JAN 2021
 # https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
 
+version: 0.1.0-{build}-{branch}
+
+# Do not build on tags (GitHub and BitBucket)
+skip_tags: true
+
+# Start builds on tags only (GitHub and BitBucket)
+# skip_non_tags: true
+
+branches:
+  only:
+    - master
+
+# collect IP and username for rdp
 init:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 
 environment:
   matrix:
@@ -52,3 +66,7 @@ on_failure:
   - set HOME=.
   - sh -l -c "test -f config.status || cat config.log"
   - sh -l -c "find . -name regression.diffs | xargs cat"
+
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# # remove locking file from the desktop
