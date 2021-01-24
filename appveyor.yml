@@ -60,9 +60,8 @@ branches:
 # https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
 
 # collect IP and username for rdp
-# init:
-#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-# # remove locking file from the desktop
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 # Note: The "R Installer on Windows" NOW always DOES a mult-arch install (garanteed as of R 4.0.0)
 #
@@ -94,6 +93,17 @@ environment:
   #
   R_HOME: /c/RINSTALL
   #
+  # In MSYS:
+  # export R_HOME=/c/progra~1/R/R-2.5.
+  # export PATH=$PATH:/c/progra~1/PostgreSQL/8.2/bin
+  # USE_PGXS=1 make
+  # USE_PGXS=1 make install
+  #
+  # https://github.com/postgres-plr/plr/blob/master/userguide.md#installation
+  #
+  PG_HOME: /c/PGINSTALL
+  #
+  #
   matrix:
     - MSYSTEM: MINGW64
       R_ARCH: /x64
@@ -113,7 +123,13 @@ install:
   - echo BEGIN INSTALL
   - echo on
   - set
+  - sh -l -c "export"
+  - echo %CD%
   - echo %APPVEYOR_BUILD_FOLDER%
+  #
+  # See the MINGW environment variable: MINGW_PACKAGE_PREFIX (and others)
+  #
+  - sh -l -c "export"
   #
   # I need the source to be used to create a configuration
   #
@@ -143,6 +159,10 @@ install:
   - type %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr\Makefile
   #
   - set PATH=C:/msys64/usr/bin;%PATH%
+  #
+  # See the MINGW environment variable: MINGW_PACKAGE_PREFIX (and others)
+  #
+  - sh -l -c "export"
   #
   #
   # I need plr to link to the R.dll, so I need the R binaries.
@@ -178,8 +198,26 @@ install:
   # OTHERS?
   - which python
   - python --version
+  #
+  # NOTE
+  # # (Future maybe?)
+  # "${MINGW_PACKAGE_PREFIX}-tcl"
+  # --with-tcl \
+  # --with-tclconfig=${MINGW_PREFIX}/lib
+  # https://github.com/msys2/MINGW-packages/blob/master/mingw-w64-postgresql/PKGBUILD
+  # #
+  # Package: mingw-w64-x86_64-tcl
+  # https://packages.msys2.org/package/mingw-w64-x86_64-tcl
+  # #
   # NOT ON THE 2015 IMAGE - which tclsh
   # NOT ON THE 2015 IMAGE - echo 'puts [info patchlevel];exit 0' | tclsh
+  #
+  # # xlsxconverter (Future? Maybe?)
+  # https://github.com/peposso/xlsxconverter/blob/858a4e72fe2920e30b01d44e6315a146b0ca4d63/appveyor.yml
+  # pacman --noconfirm --sync --refresh --sysupgrade --sysupgrade
+  # pacman --noconfirm --sync --sysupgrade --sysupgrade
+  # pacman --noconfirm --needed --sync bash pacman pacman-mirrors msys2-runtime
+  #
   #
   # In JAN 2021, 404 errors occurs here on package install option, (except -gettext).
   #
@@ -195,7 +233,11 @@ install:
 
 build_script:
   - echo BEGIN BUILD_SCRIPT
+  - echo on
   - set
+  - sh -l -c "export"
+  - echo %CD%
+  - echo %APPVEYOR_BUILD_FOLDER%
   #
   - set OLDDIR=%CD%
   - chdir %APPVEYOR_BUILD_FOLDER%/postgres
@@ -203,36 +245,92 @@ build_script:
   - set HOME=.
   - set PATH=C:/msys64/usr/bin;%PATH%
   #
+  # --prefix=PREFIX
+  # Install all files under the directory PREFIX
+  # instead of /usr/local/pgsql.
+  # The actual files will be installed into various subdirectories;
+  # no files will ever be installed directly into the PREFIX directory.
+  #
+  # https://www.postgresql.org/docs/13/install-procedure.html
+  #
   # Because of 404 errors, I can not do "all of this".
-  # - sh -l -c "./configure --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
+  # - sh -l -c "./configure --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
   #
   # I will do what I can, plus "--enable-depend"
   # I do not want to rebuild everything. I want "--enable-depend"?
   #
   # Currently, I just want the configuration.
   #
+  - echo BEGIN CONFIGURE POSTGRES
   - sh -l -c "./configure --enable-cassert --enable-debug --enable-depend"
+  - echo END CONFIGURE POSTGRES
   #
   # - sh -l -c "make world COPT=-Werror"
   #
+  # I want to build postgres.
+  #
+  - echo BEGIN MAKE POSTGRES
+  - sh -l -c "make"
+  - echo END MAKE POSTGRES
+  #
+  - echo BEGIN INSTALL POSTRES
+  - sh -l -c "make install"
+  - echo END INSTALL POSTGRES
+  #
+  # https://github.com/postgres-plr/plr/blob/master/userguide.md#installation
+  #
   # I tried to build plr alone (without building postgres).
-  # Either my Makefile is bad,
-  # and/or, postgres STILL needs to be fully built ("make")
-  # BEFORE trying to build plr.
   #
   # C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/9.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lpostgres
   # C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/9.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lpgcommon
   # C:/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/9.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lpgport
   #
-  # I want to build postgres.
+  # What directories and files do I have?
   #
-  - sh -l -c "make"
+  # build area
+  - echo BEGIN BUILD AREA DIRECTORIES AND FILES
+  - sh -l -c "find"
+  - echo END BUILD AREA DIRECTORIES AND FILES
+  #
+  # install area
+  - echo BEGIN INSTALL AREA DIRECTORIES AND FILES
+  - sh -l -c "find ${PG_HOME}"
+  - echo END INSTALL AREA DIRECTORIES AND FILES
   #
   # I want to build plr.
   #
-  - sh -l -c "make -C contrib/plr"
-  - chdir %OLDDIR%
+  - echo BEGIN MAKE PLR
+  - echo on
+  - set
+  - sh -l -c "export"
+  - echo %CD%
+  - echo %APPVEYOR_BUILD_FOLDER%
+  #
+  # so the PostgreSQL binaries that plr must link against
+  # are in the correct/expected place (${PG_HOME}/bin directory)
+  #
+  - cd contrib\plr
+  - sh -l -c "export PATH=${PG_HOME}/bin:${PATH};export;USE_PGXS=1 make"
+  - cd ..\..
+  - echo END   MAKE PLR
+  - echo BEGIN INSTALL PLR
+  - cd contrib\plr
+  - sh -l -c "export PATH=${PG_HOME}/bin:${PATH};export;USE_PGXS=1 make install"
+  - cd ..\..
+  - echo END   INSTALL PLR
+  #
+  # build area
+  - echo BEGIN BUILD AREA DIRECTORIES AND FILES
+  - sh -l -c "find"
+  - echo END   BUILD AREA DIRECTORIES AND FILES
+  #
+  # install area
+  - echo BEGIN INSTALL AREA DIRECTORIES AND FILES
+  - sh -l -c "find ${PG_HOME}"
+  - echo END   INSTALL AREA DIRECTORIES AND FILES
   - echo END BUILD_SCRIPT
+  - chdir %OLDDIR%
+
 
 after_build:
   # -r (Recurse subdirectories) switch
@@ -243,9 +341,9 @@ after_build:
   - 7z a "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip" -r %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr\*
 
 artifacts:
- #
- # plr
- #
+  #
+  # plr
+  #
   - path: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
     name: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
 
@@ -265,6 +363,6 @@ artifacts:
 #   - sh -l -c "test -f config.status || cat config.log"
 #   - sh -l -c "find . -name regression.diffs | xargs cat"
 
-# on_finish:
-#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-# # remove locking file from the desktop
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# remove locking file from the desktop
