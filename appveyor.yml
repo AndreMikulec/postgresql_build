@@ -150,8 +150,6 @@ install:
   # export MSYSTEM_CHOST="i686-w64-mingw32"
   # export MSYSTEM_PREFIX="/mingw32"
   #
-  - sh -l -c "export | "
-  #
   - echo %CD%
   - echo %APPVEYOR_BUILD_FOLDER%
   #
