@@ -102,6 +102,7 @@ environment:
   # https://github.com/postgres-plr/plr/blob/master/userguide.md#installation
   #
   PG_HOME: /c/PGINSTALL
+  PG_BUILD: /c/PGBUILD
   #
   #
   matrix:
@@ -172,6 +173,8 @@ install:
   - git clone --branch=master https://github.com/AndreMikulec/postgresql_ext_plr_Makefile.git  %APPVEYOR_BUILD_FOLDER%\postgresql_ext_plr_Makefile
   # overwrite
   - move /Y %APPVEYOR_BUILD_FOLDER%\postgresql_ext_plr_Makefile\Makefile %APPVEYOR_BUILD_FOLDER%\plr\Makefile
+  # file name change to distinguish this license from others
+  - move /Y %APPVEYOR_BUILD_FOLDER%\plr\Makefile\LICENSE                 %APPVEYOR_BUILD_FOLDER%\plr\Makefile\PLR_LICENSE   
   #
   # Copy the plr directory files to the contrib\plr directory.
   #
@@ -261,7 +264,7 @@ build_script:
   - echo %APPVEYOR_BUILD_FOLDER%
   #
   - set OLDDIR=%CD%
-  - chdir %APPVEYOR_BUILD_FOLDER%/postgres
+  - chdir %APPVEYOR_BUILD_FOLDER%\postgres
   #
   - set HOME=.
   - set PATH=C:/msys64/usr/bin;%PATH%
@@ -282,13 +285,15 @@ build_script:
   #
   # The configuration.
   #
+  - sh -l -c "mkdir    ${PG_BUILD}"
+  - sh -l -c "ls -alrt ${PG_BUILD}"
   # I am not sure if I need to do this?!?
   #
   - sh -l -c "mkdir    ${PG_HOME}"
   - sh -l -c "ls -alrt ${PG_HOME}"
   #
   - echo BEGIN CONFIGURE POSTGRES
-  - sh -l -c "./configure --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-depend"
+  - sh -l -c "cd ${PG_BUILD}; $(cygpath -a ${APPVEYOR_BUILD_FOLDER})/postgres/configure --prefix=${PG_HOME} --enable-cassert --enable-debug --enable-depend"
   - echo END CONFIGURE POSTGRES
   #
   # - sh -l -c "make world COPT=-Werror"
@@ -296,12 +301,12 @@ build_script:
   # I want to build postgres.
   #
   - echo BEGIN MAKE POSTGRES
-  - sh -l -c "make"
+  - sh -l -c "cd ${PG_BUILD}; make"
   - echo END MAKE POSTGRES
   #
-  - echo BEGIN INSTALL POSTRES
-  - sh -l -c "make install"
-  - echo END INSTALL POSTGRES
+  # - echo BEGIN INSTALL POSTRES
+  # - sh -l -c "cd ${PG_BUILD}; make install"
+  # - echo END INSTALL POSTGRES
   #
   # https://github.com/postgres-plr/plr/blob/master/userguide.md#installation
   #
@@ -314,14 +319,14 @@ build_script:
   # What directories and files do I have?
   #
   # build area
-  - echo BEGIN BUILD AREA DIRECTORIES AND FILES
-  - sh -l -c "find -type d"
-  - echo END BUILD AREA DIRECTORIES AND FILES
+  - echo BEGIN BUILD AREA DIRECTORIES
+  - sh -l -c "find ${PG_BUILD} -type d"
+  - echo END BUILD AREA DIRECTORIES
   #
   # install area
-  - echo BEGIN INSTALL AREA DIRECTORIES AND FILES
+  - echo BEGIN INSTALL AREA DIRECTORIES
   - sh -l -c "find ${PG_HOME} -type d"
-  - echo END INSTALL AREA DIRECTORIES AND FILES
+  - echo END INSTALL AREA DIRECTORIES
   #
   # I want to build plr.
   #
@@ -332,27 +337,31 @@ build_script:
   - echo %CD%
   - echo %APPVEYOR_BUILD_FOLDER%
   #
+  - sh -l -c "mkdir -p                 ${PG_BUILD}/contrib/plr"
+  # Copy Makefile over
+  - sh -l -c "cp contrib/plr/Makefile  ${PG_BUILD}/contrib/plr"
+  #
   # so the PostgreSQL binaries that plr must link against
   # are in the correct/expected place (${PG_HOME}/bin directory)
   #
-  - cd contrib\plr
-  - sh -l -c "export PATH=${PG_HOME}/bin:${PATH};export;USE_PGXS=1 make"
-  - cd ..\..
-  - echo END   MAKE PLR
+  - echo BEGIN CLEAN PLR
+  - sh -l -c "cd ${PG_BUILD};make -C contrib/plr clean"
+  - echo END   CLEAN PLR
+  - echo BEGIN ALL PLR
+  - sh -l -c "cd ${PG_BUILD};make -C contrib/plr all"
+  - echo END ALL PLR
   - echo BEGIN INSTALL PLR
-  - cd contrib\plr
-  - sh -l -c "export PATH=${PG_HOME}/bin:${PATH};export;USE_PGXS=1 make install"
-  - cd ..\..
+  - sh -l -c "cd ${PG_BUILD};make -C contrib/plr install"
   - echo END   INSTALL PLR
   #
   # build area
   - echo BEGIN BUILD AREA DIRECTORIES AND FILES
-  - sh -l -c "find -type d"
+  - sh -l -c "find ${PG_BUILD}"
   - echo END   BUILD AREA DIRECTORIES AND FILES
   #
   # install area
   - echo BEGIN INSTALL AREA DIRECTORIES AND FILES
-  - sh -l -c "find ${PG_HOME} -type d"
+  - sh -l -c "find ${PG_HOME}"
   - echo END   INSTALL AREA DIRECTORIES AND FILES
   - chdir %OLDDIR%
   - echo END   APPVEYOR BUILD_SCRIPT
@@ -363,17 +372,32 @@ after_build:
   # -r (Recurse subdirectories) switch
   # https://sevenzip.osdn.jp/chm/cmdline/switches/recurse.htm
   #
+  # (not used)
+  # switch -spf that enables the absolute path storage.
+  #        -spf2 will remove the drive letter
+  # https://superuser.com/questions/545442/how-do-i-archive-with-subdirectories-using-the-7-zip-command-line-or-how-do-i
+  #
+  - set OLDDIR=%CD%
+  - chdir %APPVEYOR_BUILD_FOLDER%\postgres
+  #
+  # I would have wished not to hard-code these.
+  #
   # plr
   #
-  - 7z a "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip" -r %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr\*
+  - mkdir                                             tmp\lib
+  - copy C:\PGINSTALL\lib\plr.dll                     tmp\lib
+  - mkdir                                             tmp\share\extension
+  - copy C:\PGINSTALL\share\doc\extension\PLR_LICENSE tmp
+  - copy C:\PGINSTALL\share\extension\plr*.sql        tmp\share\extension
+  - copy C:\PGINSTALL\share\extension\plr.control     tmp\share\extension
+  - set zip="%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_%MSYSTEM%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
+  - 7z a -r %APPVEYOR_BUILD_FOLDER%\%zip% .\tmp\* > nul
+  - chdir %OLDDIR%
   - echo END   APPVEYOR AFTER BUILD
 
 artifacts:
-  #
-  # plr
-  #
-  - path: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
-    name: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
+  - path: "%APPVEYOR_BUILD_FOLDER%\\%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_%MSYSTEM%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
+    name: "%APPVEYOR_PROJECT_SLUG%_%appveyor_build_version%_%MSYSTEM%_PG_%_PG_GIT_BRANCH%_R_%rversion%_PLR_%PLR_VERSION%.zip"
 
 #
 # Currently, I do not care.
