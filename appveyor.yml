@@ -112,8 +112,6 @@ matrix:
 install:
   - echo BEGIN INSTALL
   - echo on
-  - which tclsh
-  - echo 'puts [info patchlevel];exit 0' | tclsh  2> nul
   - set
   - echo %APPVEYOR_BUILD_FOLDER%
   #
@@ -173,12 +171,14 @@ install:
   - which flex
   - which bison
   - which perl
-  - perl -v                                       2> nul
+  - perl -v
   - which diff
   - which make
   # OTHERS?
   - which python
-  - python --version                              2> nul
+  - python --version
+  # NOT ON THE 2015 IMAGE - which tclsh
+  # NOT ON THE 2015 IMAGE - echo 'puts [info patchlevel];exit 0' | tclsh
   #
   # In JAN 2021, 404 errors occurs here on package install option, (except -gettext).
   #
@@ -189,7 +189,7 @@ install:
   - sh -l -c "pacman --noconfirm -S --needed ${MINGW_PACKAGE_PREFIX}-gettext"
   - sh -l -c "curl -L http://cpanmin.us | perl - --self-upgrade"
   - sh -l -c "cpanm --notest IPC::Run"
-  - perl -v                                       2> nul
+  - perl -v
   - echo END INSTALL
 
 build_script:
