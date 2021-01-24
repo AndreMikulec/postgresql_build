@@ -31,8 +31,9 @@ branches:
     - master
 
 # collect IP and username for rdp
-init:
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# init:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# # remove locking file from the desktop
 
 
 environment:
@@ -47,6 +48,8 @@ matrix:
 
 install:
   - echo on
+  - git clone --branch=master https://github.com/postgres-plr/plr.git  C:\projects\%APPVEYOR_PROJECT_SLUG%\plr
+  - git clone --branch=master https://github.com/postgres/postgres.git C:\projects\%APPVEYOR_PROJECT_SLUG%\postgres
   - set PATH=C:/msys64/usr/bin;%PATH%
   - sh -l -c "pacman --noconfirm -S --needed ${MINGW_PACKAGE_PREFIX}-gettext ${MINGW_PACKAGE_PREFIX}-icu ${MINGW_PACKAGE_PREFIX}-libxml2 ${MINGW_PACKAGE_PREFIX}-libxslt ${MINGW_PACKAGE_PREFIX}-openssl"
   - sh -l -c "curl -L http://cpanmin.us | perl - --self-upgrade"
