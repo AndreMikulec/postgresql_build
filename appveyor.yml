@@ -113,7 +113,7 @@ install:
   - echo BEGIN INSTALL
   - echo on
   - which tclsh
-  - echo ''puts [info patchlevel];exit 0'' | tclsh  2> nul
+  - echo 'puts [info patchlevel];exit 0' | tclsh  2> nul
   - set
   - echo %APPVEYOR_BUILD_FOLDER%
   #
