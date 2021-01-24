@@ -304,9 +304,9 @@ build_script:
   - sh -l -c "cd ${PG_BUILD}; make"
   - echo END MAKE POSTGRES
   #
-  # - echo BEGIN INSTALL POSTRES
-  # - sh -l -c "cd ${PG_BUILD}; make install"
-  # - echo END INSTALL POSTGRES
+  - echo BEGIN INSTALL POSTRES
+  - sh -l -c "cd ${PG_BUILD}; make install"
+  - echo END INSTALL POSTGRES
   #
   # https://github.com/postgres-plr/plr/blob/master/userguide.md#installation
   #
@@ -345,13 +345,13 @@ build_script:
   # are in the correct/expected place (${PG_HOME}/bin directory)
   #
   - echo BEGIN CLEAN PLR
-  - sh -l -c "cd ${PG_BUILD};make -C contrib/plr clean"
+  - sh -l -c "cd ${PG_BUILD};export PATH=${PG_HOME}/bin:$PATH;make -C contrib/plr clean"
   - echo END   CLEAN PLR
   - echo BEGIN ALL PLR
-  - sh -l -c "cd ${PG_BUILD};make -C contrib/plr all"
+  - sh -l -c "cd ${PG_BUILD};export PATH=${PG_HOME}/bin:$PATH;make -C contrib/plr all"
   - echo END ALL PLR
   - echo BEGIN INSTALL PLR
-  - sh -l -c "cd ${PG_BUILD};make -C contrib/plr install"
+  - sh -l -c "cd ${PG_BUILD};export PATH=${PG_HOME}/bin:$PATH;make -C contrib/plr install"
   - echo END   INSTALL PLR
   #
   # build area
