@@ -1,0 +1,54 @@
+# Developing PostgreSQL for Windows, Part 3
+# March 24, 2020/in Eisentraut's PlanetPostgreSQL, PostgreSQL /by Peter Eisentraut
+# https://www.2ndquadrant.com/en/blog/developing-postgresql-windows-part-3/
+
+# some AppVeyor files
+# From:	Peter Eisentraut <peter(dot)eisentraut(at)2ndquadrant(dot)com>
+# To:	pgsql-hackers <pgsql-hackers(at)postgresql(dot)org>
+# Subject:	some AppVeyor files
+# Date:	2020-03-23 16:05:33
+# Message-ID:	d8e78714-dc77-4a64-783f-e863ba4d951f@2ndquadrant.com
+# Views:	Raw Message | Whole Thread | Download mbox | Resend email
+# Thread:
+# 2020-03-23 16:05:33 from Peter Eisentraut <peter(dot)eisentraut(at)2ndquadrant(dot)com> 📎
+# Lists:	pgsql-hackers
+# https://www.postgresql.org/message-id/d8e78714-dc77-4a64-783f-e863ba4d951f%402ndquadrant.com
+
+# Accessing Windows build worker via Remote Desktop
+# JAN 2021
+# https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
+
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+environment:
+  matrix:
+    - MSYSTEM: MINGW32
+    - MSYSTEM: MINGW64
+
+# https://www.postgresql.org/message-id/flat/f1caef93-9640-022e-9211-bbe8755a56b0%402ndQuadrant.com
+matrix:
+  allow_failures:
+    - MSYSTEM: MINGW64
+
+install:
+  - set PATH=C:/msys64/usr/bin;%PATH%
+  - sh -l -c "pacman --noconfirm -S --needed ${MINGW_PACKAGE_PREFIX}-gettext ${MINGW_PACKAGE_PREFIX}-icu ${MINGW_PACKAGE_PREFIX}-libxml2 ${MINGW_PACKAGE_PREFIX}-libxslt ${MINGW_PACKAGE_PREFIX}-openssl"
+  - sh -l -c "curl -L http://cpanmin.us | perl - --self-upgrade"
+  - sh -l -c "cpanm --notest IPC::Run"
+
+build_script:
+  - set HOME=.
+  - set PATH=C:/msys64/usr/bin;%PATH%
+  - sh -l -c "./configure --enable-cassert --enable-debug --enable-nls --enable-tap-tests --with-icu --with-ldap --with-libxml --with-libxslt --with-openssl"
+  - sh -l -c "make world COPT=-Werror"
+
+test_script:
+  - set HOME=.
+  - set PATH=C:/msys64/usr/bin;%PATH%
+  - sh -l -c "make check-world COPT=-Werror"
+
+on_failure:
+  - set HOME=.
+  - sh -l -c "test -f config.status || cat config.log"
+  - sh -l -c "find . -name regression.diffs | xargs cat"
