@@ -139,6 +139,7 @@ install:
   #
   - mkdir                               %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
   - copy %APPVEYOR_BUILD_FOLDER%\plr\*  %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
+  - dir                                 %APPVEYOR_BUILD_FOLDER%\postgres\contrib\plr
   #
   - set PATH=C:/msys64/usr/bin;%PATH%
   #
@@ -175,9 +176,9 @@ install:
   - which make
   # OTHERS?
   - which python
-  - python ––version                              2> nul
+  - python --version                              2> nul
   - which tclsh
-  - echo 'puts [info patchlevel];exit 0' | tclsh  2> nul
+  - echo '''puts [info patchlevel];exit 0''' | tclsh  2> nul
   #
   # In JAN 2021, 404 errors occurs here on package install option, (except -gettext).
   #
